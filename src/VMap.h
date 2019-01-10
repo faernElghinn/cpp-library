@@ -64,6 +64,23 @@ public:
       return true;
    }
 
+   void set(const K& key, V& ele) {
+      auto ite = find(key);
+      if (ite != _vector.end())
+         ite->second = ele;
+      else
+        _vector.emplace_back(std::make_pair(key,std::move(ele)));
+   }
+
+   void setInplace(const K& key, V&& ele) {
+      auto ite = find(key);
+      if (ite != _vector.end())
+         ite->second = std::move(ele);
+      else
+         _vector.emplace_back(std::move(std::make_pair(key,std::move(ele))));
+   }
+
+
    bool erase(iterator ite) {
       if (ite == _vector.end())
          return false;

@@ -27,6 +27,14 @@ Binary::Binary(void* d, size_t s)
     memcpy(data.data(), d, s);
 }
 
+Binary::Binary(const std::vector<char>& d)
+: data(d)
+{ }
+Binary::Binary(std::vector<char>&& d)
+{ 
+   data.swap(d);
+}
+
 Binary::Binary(const std::string& str) 
 : Binary((str.size() + 1) / 2) 
 {
@@ -52,6 +60,10 @@ std::string Binary::toHex() const {
 
 Binary Binary::copy() const{
     return Binary((void*)data.data(), data.size());
+}
+
+void Binary::swap(Binary& oth){
+   data.swap(oth.data);
 }
 
 int Binary::cmp(const Binary& rhs) const {

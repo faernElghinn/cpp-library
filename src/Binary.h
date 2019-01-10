@@ -27,9 +27,13 @@ public:
     Binary(size_t size);
     Binary(void* data, size_t size);
     Binary(const std::string& str);
+    Binary(const std::vector<char>& data);
+    Binary(std::vector<char>&& data);
     ~Binary() = default;
 
     Binary copy() const;
+
+    void swap(Binary& oth);
 
     int cmp(const Binary& rhs) const;
     bool operator ==(const Binary& rhs) const;
@@ -48,7 +52,7 @@ public:
 }  // namespace elladan
 
 namespace std {
-std::string to_string(const elladan::Binary* binary);
+std::string to_string(const elladan::Binary& binary);
 }  // namespace std
 
 #endif /* SRC_BINARY_H_ */

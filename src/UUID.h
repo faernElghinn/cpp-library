@@ -17,19 +17,24 @@ namespace elladan {
 class UUID
 {
 public:
+   static constexpr size_t size = 16;
     static UUID generateUUID();
 
     UUID();
-
-    UUID (const UUID& other) {
-        memcpy(_uuid, other._uuid, sizeof(_uuid));
+    UUID (const UUID& other);
+    UUID (UUID&& other);
+    ~UUID() = default;
+    constexpr UUID& operator=(const UUID& other){
+        memcpy(_uuid, other._uuid, size);
+        return *this;
     }
+
+    UUID (const std::string& );
+    UUID (std::vector<char>& );
 
     bool operator!() const;
 
-    inline int cmp(const UUID& other) const {
-        return std::memcmp(_uuid, other._uuid, sizeof(_uuid));
-    }
+    int cmp(const UUID& other) const;
     inline bool operator==(const UUID& other) const { return cmp(other) == 0; }
     inline bool operator!=(const UUID& other) const { return cmp(other) != 0; }
     inline bool operator> (const UUID& other) const { return cmp(other) >  0; }
@@ -42,11 +47,11 @@ public:
 
     inline uint8_t* getRaw() { return _uuid; }
     inline const uint8_t* getRaw() const { return _uuid; }
-    inline size_t getSize() const { return sizeof(_uuid); }
+    inline constexpr size_t getSize() const { return size; }
+    static constexpr size_t getStringSize() { return size*2+4; }
 
 private:
-    uint8_t _uuid[16];
-
+    uint8_t _uuid[size];
 };
 
 } // namespace elladan

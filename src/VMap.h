@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cassert>
 #include <functional>
+#include <utility>
 
 namespace elladan {
 
@@ -21,28 +22,42 @@ public:
    typedef K key_type;
    typedef V value_type;
 
-   typedef typename std::pair<K,V> pair;
+   // typedef typename std::pair<K,V> pair;
+   struct pair{
+      // pair() = default;
+      // ~pair() = default;
+      // pair(pair&& rhs) : first(std::move(rhs.first)), second(std::move(rhs.second)) {};
+      // pair(const pair&) = default;
+      // pair& operator=(pair&& rhs) { first = std::move(rhs.first); second = std::move(rhs.second);};
+      // pair& operator=(const pair&) = default;
+      // ~pair() = default;
+      K first;
+      V second;
+   };
    typedef typename std::vector<pair>::iterator iterator;
    typedef typename std::vector<pair>::const_iterator const_iterator;
    typedef typename std::vector<pair>::reverse_iterator reverse_iterator;
+   typedef typename std::vector<pair>::const_reverse_iterator const_reverse_iterator;
 
    VMap() = default;
    VMap(const VMap&) = default;
    VMap(VMap&&) = default;
-   VMap(std::initializer_list<std::pair<K,V>> l) {
+   VMap(std::initializer_list<pair> l) {
       for (auto& ite : l) 
          _vector.push_back(ite);
    }
+   VMap& operator=(const VMap&) = default;
+   VMap& operator=(VMap&&) = default;
    ~VMap() = default;
 
-   iterator find(K key) {
+   iterator find(const K& key) {
       for (auto ite = _vector.begin(); ite != _vector.end(); ++ite)
          if (ite->first == key)
             return ite;
       return _vector.end();
    }
 
-   const_iterator find(K key) const {
+   const_iterator find(const K& key) const {
       for (auto ite = _vector.begin(); ite != _vector.end(); ++ite)
          if (ite->first == key)
             return ite;
@@ -53,49 +68,50 @@ public:
       if (find(key) != _vector.end())
          return false;
 
-      _vector.push_back(std::make_pair(key,ele));
+      _vector.push_back(pair {key,ele});
       return true;
    }
    bool emplace(const K& key, V&& ele) {
       if (find(key) != _vector.end())
          return false;
 
-      _vector.emplace_back(std::move(std::make_pair(key,std::move(ele))));
+      _vector.emplace_back(std::move(pair {key,std::move(ele)}));
       return true;
    }
 
-   void set(const K& key, V& ele) {
+   void set(const K& key, const V& ele) {
       auto ite = find(key);
       if (ite != _vector.end())
          ite->second = ele;
       else
-        _vector.emplace_back(std::make_pair(key,std::move(ele)));
+        _vector.emplace_back(pair {key,ele});
    }
 
    void setInplace(const K& key, V&& ele) {
       auto ite = find(key);
       if (ite != _vector.end())
-         ite->second = std::move(ele);
+         std::swap(ite->second, ele);
       else
-         _vector.emplace_back(std::move(std::make_pair(key,std::move(ele))));
+         _vector.emplace_back(std::move(pair {key,std::move(ele)}));
    }
 
-
-   bool erase(iterator ite) {
+   bool erase(iterator& ite) {
       if (ite == _vector.end())
          return false;
+
       _vector.erase(ite);
       return true;
    }
 
-   bool erase(K key) {
-      return erase(find(key));
+   bool erase(const K& key) {
+      auto ite = find(key);
+      return erase(ite);
    }
 
-   V& operator[] (K key) {
+   V& operator[] (const K& key) {
       auto ite = find(key);
       if (ite == _vector.end()) {
-         _vector.emplace_back(std::make_pair(key,V()));
+         _vector.emplace_back(pair {key,std::move(V())});
          ite =  --_vector.end();
       }
       return ite->second;
@@ -116,21 +132,23 @@ public:
    V&& take(const K& key) {
       auto ite = find(key);
       assert(ite != _vector.end());
-      V retVal = std::move(ite->second);
+      V&& retVal = std::move(ite->second);
       erase(ite);
-      return retVal;
+      return std::move(retVal);
    }
 
    void clear() { _vector.clear(); }
    int count (K key) const { return find(key) != _vector.end(); }
    int size () const { return _vector.size(); }
-   int reserve (size_t size) const { return _vector.reserve(size); }
+   void reserve (size_t size) { _vector.reserve(size); }
    iterator begin() { return  _vector.begin(); }
    iterator end() { return  _vector.end(); }
    const_iterator begin() const { return  _vector.begin(); }
    const_iterator end() const { return  _vector.end(); }
-   reverse_iterator rbegin() const { return  _vector.rbegin(); }
-   reverse_iterator rend() const { return  _vector.rend(); }
+   reverse_iterator rbegin() { return  _vector.rbegin(); }
+   reverse_iterator rend() { return  _vector.rend(); }
+   const_reverse_iterator rbegin() const { return  _vector.rbegin(); }
+   const_reverse_iterator rend() const { return  _vector.rend(); }
 
    void sort() {
       std::stable_sort(_vector.begin(), _vector.end(), [](const pair& lhs, const pair& rhs){ return lhs.first < rhs.first; });
@@ -174,10 +192,24 @@ public:
    }
 
 protected:
+
    std::vector<pair> _vector;
-   int cmp(const VMap<K,V>& rhs) const {
-      return size() - rhs.size();
-   }
+};
+
+//SFINAE
+template <typename T>
+struct is_vmap
+{
+   template <typename U>
+   static typename std::enable_if<(
+         std::is_same<U, VMap< typename U::key_type, typename U::value_type>
+   >::value), char>::type
+   test(typename U::value_type* x);
+
+   template <typename U>
+   static long test(U* x);
+
+   static const bool value = sizeof(test<T>(nullptr)) == 1;
 };
 
 }  // namespace elladan

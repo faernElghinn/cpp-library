@@ -13,7 +13,7 @@ file(GLOB_RECURSE header "src/*.h")
 
 #set(CMAKE_CXX_FLAGS "-std=c++14 -Wshadow-compatible-local -fsanitize=address -fuse-ld=gold")
 #set(CMAKE_CXX_FLAGS "-std=c++14 -Wshadow-compatible-local") #-fsanitize=address -fuse-ld=gold")
-set(CMAKE_CXX_FLAGS "-std=c++14 -Wshadow") #-fsanitize=address -fuse-ld=gold")
+set(CMAKE_CXX_FLAGS "-std=c++17 -Wshadow") #-fsanitize=address -fuse-ld=gold")
 SET_SOURCE_FILES_PROPERTIES( ${source} ${header} PROPERTIES LANGUAGE CXX )
 add_library(ElladanHelper STATIC ${source} )
 

@@ -18,19 +18,17 @@ class UUID
 {
 public:
    static constexpr size_t size = 16;
-    static UUID generateUUID();
+    static UUID generateUUID(int version = 4);
 
     UUID();
     UUID (const UUID& other);
     UUID (UUID&& other);
     ~UUID() = default;
-    constexpr UUID& operator=(const UUID& other){
-        memcpy(_uuid, other._uuid, size);
-        return *this;
-    }
+    UUID& operator=(const UUID& other);
 
-    UUID (const std::string& );
-    UUID (std::vector<char>& );
+    UUID (const std::string& fromString);
+    UUID (std::vector<char>& fromArrau);
+    UUID (std::vector<uint8_t>& fromArrau);
 
     bool operator!() const;
 

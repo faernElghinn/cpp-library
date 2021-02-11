@@ -5,124 +5,244 @@
  *      Author: daniel
  */
 
+
 #pragma once
 
-#include <set>
+
+/*
+ * Deprecated, replaced by
+ * - std::set_symetric_difference, // Element is in the resulting set if exactly one of the source set.
+ * - std::set_difference  // Element is keep if not in the second set.
+ * - std::set_intersection, // Element is keep if in bith set.
+ * - std::set_union // Element is keep if in any set.
+ * See the standard for the nuts and bolts!
+ *
+ * Template are added for convenience.
+ */
+
+#include <cassert>
+#include <algorithm>
+
+#include "SFINAE.h"
 
 namespace elladan {
 
-template < typename K, typename C, typename A>
-void keep_intersect(std::set<K,C,A>& edited, const std::set<K,C,A>& must_include) {
-    auto ite = edited.begin();
-    auto ote = must_include.cbegin();
 
-    C cmp;
-    while (ite != edited.end() && ote != must_include.cend()){
-        bool ths_lt_oth = cmp(*ite, *ote);
-        bool oth_lt_ths = cmp(*ote, *ite);
 
-        // Is the same. Keep it.
-        if ((!ths_lt_oth) & (!ths_lt_oth)) {
-            ++ite;
-            ++ote;
-        }
-
-        // This value arrives before the next value... Remove it.
-        else if (ths_lt_oth)
-            ite = edited.erase(ite);
-
-        // This arrive after the next value... Keep searching.
-        else // if (oth_lt_ths)
-            ++ote;
-    }
-
-    // Remove trailing unmatched values.
-    while (ite != edited.end()) {
-        ite = edited.erase(ite);
-    }
+template<typename T>
+inline void moveIfDiff(T& target, T& source) {
+   if (target != source) *target = std::move(*source);
+   ++target;
+   ++source;
 }
 
-template < typename K, typename C, typename A>
-void keep_difference(std::set<K,C,A>& edited, const std::set<K,C,A>& must_not_include) {
-    auto ite = edited.begin();
-    auto ote = must_not_include.cbegin();
-    C cmp;
 
-    while (ite != edited.end() && ote != must_not_include.cend()){
-        bool ths_lt_oth = cmp(*ite, *ote);
-        bool oth_lt_ths = cmp(*ote, *ite);
+template <typename T, std::enable_if_t<is_vector<T>::value>* = nullptr>
+T set_intersect(const T& set1, const T& set2) {
+   assert(std::is_sorted(set1.begin(), set1.end()));
+   assert(std::is_sorted(set2.begin(), set2.end()));
 
-        // Is the same.. Remove it.
-        if ((!ths_lt_oth) & (!ths_lt_oth)){
-            ite = edited.erase(ite);
-            ++ote;
-        }
+   T set3;
+   std::set_intersection(set1.begin(), set1.end(),
+                         set2.begin(), set2.end(),
+                         std::back_inserter(set3));
+   return set3;
+}
+template <typename T, std::enable_if_t<is_set<T>::value>* = nullptr>
+T set_intersect(const T& set1, const T& set2) {
+   T set3;
 
-        // This value arrives before the next value... Keep it.
-        else if (ths_lt_oth)
-            ++ite;
+   auto read1 = set1.begin();
+   auto read2 = set2.begin();
 
-        // This arrive after the next value... Keep searching.
-        else // if (oth_lt_ths)
-            ++ote;
-    }
+   while (read1 != set1.end()) {
+      if (read2 == set2.end())
+         break;
+
+      if (*read1 < *read2)
+         ++read1;
+      else if (*read2 < *read1)
+         ++read2;
+      else {
+         ++read2;
+         set3.insert(*read1++);
+      }
+   }
+
+   return set3;
 }
 
-template < typename K, typename C, typename A>
-std::set<K,C,A> intersect(const std::set<K,C,A>& base, const std::set<K,C,A>& other) {
-    std::set<K,C,A> copy;
-    auto ite = base.cbegin();
-    auto ote = other.cbegin();
-    C cmp;
-    while (ite != base.cend() && ote != other.cend()){
-        bool ths_lt_oth = cmp(*ite, *ote);
-        bool oth_lt_ths = cmp(*ote, *ite);
+template <typename T, std::enable_if_t<is_vector<T>::value>* = nullptr>
+T set_remove(const T& list, const T& toRemove) {
+   assert(std::is_sorted(list.begin(), list.end()));
+   assert(std::is_sorted(toRemove.begin(), toRemove.end()));
 
-        // Is the same... Add it.
-        if ((!ths_lt_oth) & (!ths_lt_oth)) {
-            copy.insert(copy.end(), *ite);
-            ++ite;
-            ++ote;
-        }
+   T set3;
+   std::set_difference(list.begin(), list.end(),
+                       toRemove.begin(), toRemove.end(),
+                       std::back_inserter(set3));
+   return set3;
+}
+template <typename T, std::enable_if_t<is_set<T>::value> = 0>
+T set_remove(const T& list, const T& toRemove) {
+   T set3;
+   auto read1 = list.begin();
+   auto read2 = toRemove.begin();
 
-        // This value arrives before the next value... Skip it.
-        else if (ths_lt_oth)
-            ++ite;
+   while (read1 != list.end()) {
+      if (read2 == toRemove.end())
+         return;
 
-        // This arrive after the next value... Keep searching.
-        else // if (oth_lt_ths)
-            ++ote;
-    }
-    return copy;
+      if (*read1 < *read2)
+         set3.insert(*read1++);
+      else if (*read2 < *read1)
+         ++read2;
+      else {
+         ++read2;
+         ++read1;
+      }
+   }
+   return set3;
 }
 
-template < typename K, typename C, typename A>
-std::set<K,C,A> difference(const std::set<K,C,A>& base, const std::set<K,C,A>& other) {
-    std::set<K,C,A> copy;
-    auto ite = base.cbegin();
-    auto ote = other.cbegin();
-    C cmp;
-    while (ite != base.cend() && ote != other.cend()){
-        bool ths_lt_oth = cmp(*ite, *ote);
-        bool oth_lt_ths = cmp(*ote, *ite);
+template <typename T, std::enable_if_t<is_vector<T>::value>* = nullptr>
+T set_difference_full(const T& set1, const T& set2) {
+   assert(std::is_sorted(set1.begin(), set1.end()));
+   assert(std::is_sorted(set2.begin(), set2.end()));
 
-        // Is the same... Skip it.
-        if ((!ths_lt_oth) & (!ths_lt_oth)){
-            ++ite;
-            ++ote;
-        }
+   T set3;
+   std::set_symmetric_difference(set1.begin(), set1.end(),
+                                 set2.begin(), set2.end(),
+                                 std::back_inserter(set3));
+   return set3;
+}
+template <typename T, std::enable_if_t<is_set<T>::value> = 0>
+T set_difference_full(const T& set1, const T& set2) {
+   T set3;
+   auto read1 = set1.begin();
+   auto read2 = set2.begin();
 
-        // This value arrives before the next value... Add it.
-        else if (ths_lt_oth){
-            copy.insert(copy.end(), *ite);
-            ++ite;
-        }
+   while (read1 != set1.end()) {
+      if (read2 == set2.end())
+         return;
 
-        // This arrive after the next value... Keep searching.
-        else // if (oth_lt_ths)
-            ++ote;
-    }
-    return copy;
+      if (*read1 < *read2)
+         set3.insert(*read1++);
+      else if (*read2 < *read1)
+         set3.insert(*read2++);
+      else {
+         ++read2;
+         ++read1;
+      }
+   }
+   return set3;
+}
+
+template <typename T, std::enable_if_t<is_vector<T>::value>* = nullptr>
+T set_union(const T& set1, const T& set2) {
+   assert(std::is_sorted(set1.begin(), set1.end()));
+   assert(std::is_sorted(set2.begin(), set2.end()));
+
+   T set3;
+   std::set_union(set1.begin(), set1.end(),
+                  set2.begin(), set2.end(),
+                  std::back_inserter(set3));
+   return set3;
+}
+template <typename T, std::enable_if_t<is_set<T>::value> = 0>
+T set_union(const T& set1, const T& set2) {
+   T set3;
+   auto read1 = set1.begin();
+   auto read2 = set2.begin();
+
+   while (read1 != set1.end()) {
+      if (read2 == set2.end())
+         return;
+
+      if (*read1 < *read2)
+         set3.insert(*read1++);
+      else if (*read2 < *read1)
+         set3.insert(*read2++);
+      else {
+         ++read2;
+         set3.insert(*read1++);
+      }
+   }
+   return set3;
+}
+
+template <typename T, std::enable_if_t<is_vector<T>::value>* = nullptr>
+void set_intersect_in_place(T& set1, const T& set2) {
+   assert(std::is_sorted(set1.begin(), set1.end()));
+   assert(std::is_sorted(set2.begin(), set2.end()));
+   assert(&set1 != &set2);
+
+   auto writeLoc = set1.begin();
+   auto read1 = set1.begin();
+   auto read2 = set2.begin();
+
+   while (read1 != set1.end()) {
+      if (read2 == set2.end()) {
+         set1.erase(read1, set1.end());
+         break;
+      }
+
+      if (*read1 < *read2)
+         ++read1;
+      else if (*read2 < *read1)
+         ++read2;
+      else {
+         ++read2;
+         moveIfDiff(writeLoc, read1);
+      }
+   }
+   set1.erase(writeLoc, set1.end());
+}
+
+template <typename T, std::enable_if_t<is_vector<T>::value>* = nullptr>
+void set_remove_in_place(T& list, const T& toRemove) {
+   assert(std::is_sorted(list.begin(), list.end()));
+   assert(std::is_sorted(toRemove.begin(), toRemove.end()));
+   assert(&list != &toRemove);
+
+   auto writeLoc = list.begin();
+   auto read1 = list.begin();
+   auto read2 = toRemove.begin();
+
+   while (read1 != list.end()) {
+      if (read2 == toRemove.end())
+         moveIfDiff(writeLoc, read1);
+      else if (*read1 < *read2)
+         moveIfDiff(writeLoc, read1);
+      else if (*read2 < *read1)
+         ++read2;
+      else {
+         ++read2;
+         ++read1;
+      }
+   }
+   list.erase(writeLoc, list.end());
+}
+template <typename T, std::enable_if_t<is_set<T>::value>* = nullptr>
+void set_remove_in_place(T& list, const T& toRemove) {
+   assert(&list != &toRemove);
+
+   auto read1 = list.begin();
+   auto read2 = toRemove.begin();
+
+   while (read1 != list.end()) {
+      if (read2 == toRemove.end())
+         return;
+
+      if (*read1 < *read2)
+         ++read1;
+      else if (*read2 < *read1)
+         ++read2;
+      else {
+         ++read2;
+         read1 = list.erase(read1);
+      }
+   }
 }
 
 } // namespace elladan

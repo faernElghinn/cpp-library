@@ -93,7 +93,7 @@ std::vector<std::string> listFile(std::string path, const std::string& extension
     // List all json file in directory.
     ::DIR *dp;
     struct dirent *dirp;
-    struct stat sb;
+//    struct stat sb;
 
     dp = opendir(path.c_str());
     if (dp == nullptr) {
@@ -120,7 +120,7 @@ std::vector<std::string> listFolder(const std::string& path) {
     // List all json file in directory.
     ::DIR *dp;
     struct dirent *dirp;
-    struct stat sb;
+//    struct stat sb;
 
     int dfd = open(path.c_str(), O_RDONLY);
     if (dfd == -1) throw Exception("Folder " + path + " don't exist");
@@ -141,7 +141,7 @@ std::vector<std::string> listFolder(const std::string& path) {
 
 std::string removeDoubleSlash(std::string txt) {
     if (!txt.empty()) {
-        int pos = 0;
+        size_t pos = 0;
         while ((pos = txt.find("//", pos)) != std::string::npos)
             txt.replace(pos, 2, "/");
     }

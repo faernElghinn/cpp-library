@@ -33,7 +33,7 @@ static std::string test_uuid(){
    if (ud1 != ud2) // Validate exporting and re-importing value,
       retVal += "\n Regenerating uuid is seen as different!";
 
-   const char asStr[] = "01234567-89AB-CDEF-0123-456789ABCDEF";
+   const char asStr[] = "01234567-89ab-cdef-0123-456789abcdef";
    UUID ud3(asStr);
    if (ud3.toString() != asStr)
       retVal += std::string("\n Could not decode string, expected \n\t") + asStr + "\ngot : \n\t" + ud3.toString();
